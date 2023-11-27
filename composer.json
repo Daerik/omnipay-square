@@ -27,10 +27,11 @@
     },
     "require": {
         "omnipay/common": "~3.0",
-        "square/connect": "*"
+        "square/square": "^33.0"
     },
     "require-dev": {
-        "omnipay/tests": "~3.0"
+        "omnipay/tests": "~3.0",
+        "http-interop/http-factory-guzzle": "^1.2"
     },
     "extra": {
         "branch-alias": {
