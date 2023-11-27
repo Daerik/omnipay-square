@@ -12,7 +12,7 @@ namespace Omnipay\Square\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
 use Omnipay\Common\Message\ResponseInterface;
-use SquareConnect;
+use Square;
 
 class FetchCustomerRequest extends AbstractRequest
 {
@@ -61,14 +61,24 @@ class FetchCustomerRequest extends AbstractRequest
      */
     public function sendData($data)
     {
-        SquareConnect\Configuration::getDefaultConfiguration()->setAccessToken($this->getAccessToken());
-
-        $api_instance = new SquareConnect\Api\CustomersApi();
+	    $environment = Square\Environment::PRODUCTION;
+	    
+	    if($this->getParameter('testMode')) {
+		    $environment = Square\Environment::SANDBOX;
+	    }
+	    
+	    $api_client = new Square\SquareClient([
+		    'accessToken' => $this->getAccessToken(),
+		    'environment' => $environment
+	    ]);
+	    
+	    $api_instance = $api_client->getCustomersApi();
 
         try {
-            $result = $api_instance->retrieveCustomer($data['customer_id']);
-
-            if ($error = $result->getErrors()) {
+	        $api_response = $api_instance->retrieveCustomer($data['customer_id']);
+	        $result = $api_response->getResult();
+	        
+	        if ($error = $api_response->getErrors()) {
                 $response = [
                     'status' => 'error',
                     'code' => $error['code'],

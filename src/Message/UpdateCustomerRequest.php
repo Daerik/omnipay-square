@@ -11,7 +11,7 @@ namespace Omnipay\Square\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
 use Omnipay\Common\Message\ResponseInterface;
-use SquareConnect;
+use Square;
 
 class UpdateCustomerRequest extends AbstractRequest
 {
@@ -76,7 +76,7 @@ class UpdateCustomerRequest extends AbstractRequest
         return $this->setParameter('email', $value);
     }
 
-    public function setAddress(SquareConnect\Model\Address $value)
+    public function setAddress(Square\Models\Address $value)
     {
         return $this->setParameter('address', $value);
     }
@@ -157,14 +157,24 @@ class UpdateCustomerRequest extends AbstractRequest
 
     public function sendData($data)
     {
-        SquareConnect\Configuration::getDefaultConfiguration()->setAccessToken($this->getAccessToken());
-
-        $api_instance = new SquareConnect\Api\CustomersApi();
+	    $environment = Square\Environment::PRODUCTION;
+	    
+	    if($this->getParameter('testMode')) {
+		    $environment = Square\Environment::SANDBOX;
+	    }
+	    
+	    $api_client = new Square\SquareClient([
+		    'accessToken' => $this->getAccessToken(),
+		    'environment' => $environment
+	    ]);
+	    
+	    $api_instance = $api_client->getCustomersApi();
 
         try {
-            $result = $api_instance->updateCustomer($this->getCustomerReference(), $data);
-
-            if ($error = $result->getErrors()) {
+	        $api_response = $api_instance->updateCustomer($this->getCustomerReference(), $data);
+	        $result = $api_response->getResult();
+	        
+	        if ($error = $api_response->getErrors()) {
                 $response = [
                     'status' => 'error',
                     'code' => $error['code'],

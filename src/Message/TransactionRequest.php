@@ -3,7 +3,7 @@
 namespace Omnipay\Square\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
-use SquareConnect;
+use Square;
 
 /**
  * Square Purchase Request
@@ -63,12 +63,22 @@ class TransactionRequest extends AbstractRequest
 
     public function sendData($data)
     {
-        SquareConnect\Configuration::getDefaultConfiguration()->setAccessToken($this->getAccessToken());
-
-        $api_instance = new SquareConnect\Api\TransactionsApi();
+	    $environment = Square\Environment::PRODUCTION;
+	    
+	    if($this->getParameter('testMode')) {
+		    $environment = Square\Environment::SANDBOX;
+	    }
+	    
+	    $api_client = new Square\SquareClient([
+		    'accessToken' => $this->getAccessToken(),
+		    'environment' => $environment
+	    ]);
+	    
+	    $api_instance = $api_client->getTransactionsApi();
 
         try {
-            $result = $api_instance->retrieveTransaction($this->getLocationId(), $data['transactionId']);
+	        $api_response = $api_instance->retrieveTransaction($this->getLocationId(), $data['transactionId']);
+	        $result = $api_response->getResult();
 
             $orders = [];
 
@@ -82,8 +92,8 @@ class TransactionRequest extends AbstractRequest
                     $orders[] = $data;
                 }
             }
-
-            if ($error = $result->getErrors()) {
+	        
+	        if ($error = $api_response->getErrors()) {
                 $response = [
                     'status' => 'error',
                     'code' => $error['code'],

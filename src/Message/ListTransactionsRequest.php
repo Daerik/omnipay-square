@@ -3,7 +3,7 @@
 namespace Omnipay\Square\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
-use SquareConnect;
+use Square;
 
 /**
  * Square List Transactions Request
@@ -87,29 +87,32 @@ class ListTransactionsRequest extends AbstractRequest
         return [];
     }
 
-    public function sendData()
+    public function sendData($data)
     {
-        $defaultApiConfig = new \SquareConnect\Configuration();
-        $defaultApiConfig->setAccessToken($this->getAccessToken());
-
-        if($this->getParameter('testMode')) {
-            $defaultApiConfig->setHost("https://connect.squareupsandbox.com");
-        }
-
-        $defaultApiClient = new \SquareConnect\ApiClient($defaultApiConfig);
-
-        $api_instance = new SquareConnect\Api\PaymentsApi($defaultApiClient);
+	    $environment = Square\Environment::PRODUCTION;
+	    
+	    if($this->getParameter('testMode')) {
+		    $environment = Square\Environment::SANDBOX;
+	    }
+	    
+	    $api_client = new Square\SquareClient([
+		    'accessToken' => $this->getAccessToken(),
+		    'environment' => $environment
+	    ]);
+	    
+	    $api_instance = $api_client->getPaymentsApi();
 
         try {
-            $result = $api_instance->listTransactions(
-                $this->getBeginTime(),
-                $this->getEndTime(),
-                $this->getSortOrder(),
-                $this->getCursor(),
-                $this->getLocationId()
-            );
-
-            if ($error = $result->getErrors()) {
+	        $api_response = $api_instance->listPayments(
+		        $this->getBeginTime(),
+		        $this->getEndTime(),
+		        $this->getSortOrder(),
+		        $this->getCursor(),
+		        $this->getLocationId()
+	        );
+	        $result = $api_response->getResult();
+	        
+	        if ($error = $api_response->getErrors()) {
                 $response = [
                     'status' => 'error',
                     'code' => $error['code'],

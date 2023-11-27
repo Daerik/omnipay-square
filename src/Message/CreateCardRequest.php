@@ -3,7 +3,7 @@
 namespace Omnipay\Square\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
-use SquareConnect;
+use Square;
 
 /**
  * Square Create Credit Card Request
@@ -63,14 +63,24 @@ class CreateCardRequest extends AbstractRequest
 
     public function sendData($data)
     {
-        SquareConnect\Configuration::getDefaultConfiguration()->setAccessToken($this->getAccessToken());
-
-        $api_instance = new SquareConnect\Api\CustomersApi();
+	    $environment = Square\Environment::PRODUCTION;
+	    
+	    if($this->getParameter('testMode')) {
+		    $environment = Square\Environment::SANDBOX;
+	    }
+	    
+	    $api_client = new Square\SquareClient([
+		    'accessToken' => $this->getAccessToken(),
+		    'environment' => $environment
+	    ]);
+	    
+	    $api_instance = $api_client->getCustomersApi();
 
         try {
-            $result = $api_instance->createCustomerCard($data['customer_id'], $data);
+	        $api_response = $api_instance->createCustomerCard($data['customer_id'], $data);
+	        $result = $api_response->getResult();
 
-            if ($error = $result->getErrors()) {
+            if ($error = $api_response->getErrors()) {
                 $response = [
                     'status' => 'error',
                     'code' => $error['code'],

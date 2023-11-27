@@ -3,7 +3,7 @@
 namespace Omnipay\Square\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
-use SquareConnect;
+use Square;
 
 /**
  * Square Purchase Request
@@ -143,23 +143,26 @@ class ChargeRequest extends AbstractRequest
 
     public function sendData($data)
     {
-        $defaultApiConfig = new \SquareConnect\Configuration();
-        $defaultApiConfig->setAccessToken($this->getAccessToken());
-
-        if($this->getParameter('testMode')) {
-            $defaultApiConfig->setHost("https://connect.squareupsandbox.com");
-        }
-
-        $defaultApiClient = new \SquareConnect\ApiClient($defaultApiConfig);
-
-        $api_instance = new SquareConnect\Api\PaymentsApi($defaultApiClient);
+	    $environment = Square\Environment::PRODUCTION;
+	    
+	    if($this->getParameter('testMode')) {
+		    $environment = Square\Environment::SANDBOX;
+	    }
+	    
+	    $api_client = new Square\SquareClient([
+		    'accessToken' => $this->getAccessToken(),
+		    'environment' => $environment
+	    ]);
+	    
+	    $api_instance = $api_client->getPaymentsApi();
 
         $tenders = [];
 
         try {
-            $result = $api_instance->createPayment($data);
+            $api_response = $api_instance->createPayment($data);
+			$result = $api_response->getResult();
 
-            if ($error = $result->getErrors()) {
+            if ($error = $api_response->getErrors()) {
                 $response = [
                     'status' => 'error',
                     'code' => $error['code'],
@@ -175,11 +178,9 @@ class ChargeRequest extends AbstractRequest
                 ];
             }
         } catch (\Exception $e) {
-            $error = $e->getResponseBody()->errors[0]->detail ?? $e->getMessage();
-
             $response = [
                 'status' => 'error',
-                'detail' => 'Exception when creating transaction: ' . $error
+                'detail' => 'Exception when creating transaction: ' . $e->getMessage()
             ];
         }
 
