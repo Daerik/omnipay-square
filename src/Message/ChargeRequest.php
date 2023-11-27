@@ -143,6 +143,7 @@ class ChargeRequest extends AbstractRequest
 
     public function sendData($data)
     {
+		/* @var array $data */
 	    $environment = Square\Environment::PRODUCTION;
 	    
 	    if($this->getParameter('testMode')) {
@@ -157,9 +158,11 @@ class ChargeRequest extends AbstractRequest
 	    $api_instance = $api_client->getPaymentsApi();
 
         $tenders = [];
+		
+		$payment_request = new Square\Models\CreatePaymentRequest($data['source_id'], $data['idempotency_key']);
 
         try {
-            $api_response = $api_instance->createPayment($data);
+            $api_response = $api_instance->createPayment($payment_request);
 			$result = $api_response->getResult();
 
             if ($error = $api_response->getErrors()) {
